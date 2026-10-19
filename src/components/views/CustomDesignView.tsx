@@ -289,7 +289,7 @@ export const CustomDesignView: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting || isUploading}
-            className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3.5 bg-theme hover:bg-theme-hover text-white font-bold text-xs sm:text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             {isSubmitting ? (
               <>

@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, onOpenS
               <div
                 onClick={() => setIsThemeModalOpen(true)}
                 className="w-10 h-10 rounded-xl font-extrabold flex items-center justify-center text-lg tracking-tighter shadow-sm text-white cursor-pointer relative group transition-transform hover:scale-105 shrink-0"
-                style={{ backgroundColor: settings?.primaryColor || '#22c55e' }}
+                style={{ backgroundColor: settings?.logoColor || settings?.primaryColor || '#22c55e' }}
                 title="Click to upload logo or pick color"
               >
                 {(settings?.logoText || settings?.brandName || 'M').charAt(0).toUpperCase()}
@@ -131,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, onOpenS
             ) : (
               <div
                 className="w-10 h-10 rounded-xl font-extrabold flex items-center justify-center text-lg tracking-tighter shadow-sm text-white group-hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: settings?.primaryColor || '#22c55e' }}
+                style={{ backgroundColor: settings?.logoColor || settings?.primaryColor || '#22c55e' }}
               >
                 {(settings?.logoText || settings?.brandName || 'M').charAt(0).toUpperCase()}
               </div>

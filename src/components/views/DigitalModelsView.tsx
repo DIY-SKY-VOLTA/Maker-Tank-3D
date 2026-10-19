@@ -190,7 +190,7 @@ export const DigitalModelsView: React.FC<DigitalModelsViewProps> = ({ onQuickVie
                     href={tool.makerWorldUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2 px-3 bg-slate-900 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                    className="w-full py-2 px-3 bg-theme hover:bg-theme-hover text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                   >
                     <span>Launch on MakerWorld</span>
                     <ExternalLink className="w-3.5 h-3.5" />

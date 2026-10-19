@@ -522,6 +522,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   logoUrl: '',
   logoText: 'MAKER TANK 3D',
   logoSubtitle: 'PRINT • DESIGN • CREATE',
+  logoColor: '#22c55e',
   primaryColor: '#22c55e',
   primaryHoverColor: '#16a34a',
   buttonTextColor: '#ffffff',

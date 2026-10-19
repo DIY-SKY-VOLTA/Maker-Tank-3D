@@ -204,7 +204,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
                       quantity: 1,
                     });
                   }}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-green-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-3 py-1.5 bg-theme hover:bg-theme-hover text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
                   aria-label={`Add ${product.name} to cart`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />

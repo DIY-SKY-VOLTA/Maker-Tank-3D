@@ -104,7 +104,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
         <div className="pt-2 flex justify-center gap-3">
           <button
             onClick={() => onNavigate('custom')}
-            className="px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm"
+            className="px-5 py-2.5 bg-theme hover:bg-theme-hover text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm"
           >
             <span>Request Custom CAD</span>
             <ArrowRight className="w-4 h-4" />

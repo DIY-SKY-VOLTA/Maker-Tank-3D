@@ -94,6 +94,7 @@ export interface SiteSettings {
   logoUrl?: string;
   logoText?: string;
   logoSubtitle?: string;
+  logoColor?: string;
   primaryColor?: string;
   primaryHoverColor?: string;
   buttonTextColor?: string;

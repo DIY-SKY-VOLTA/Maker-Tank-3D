@@ -403,7 +403,7 @@ const ProductDetailModalContent: React.FC<{ product: Product; onClose: () => voi
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     onClick={handleAddToCart}
-                    className="w-full py-3 px-4 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="w-full py-3 px-4 bg-theme hover:bg-theme-hover text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
                   >
                     <ShoppingBag className="w-4 h-4" />
                     <span>Add to Cart (₹{totalPrice})</span>

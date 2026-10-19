@@ -1,5 +1,15 @@
-import React, { useState, useRef } from 'react';
-import { X, Palette, UploadCloud, Check, Sparkles, Image, RefreshCw, Undo, Eye } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  X,
+  Palette,
+  Check,
+  Undo,
+  UploadCloud,
+  Image,
+  RefreshCw,
+  Eye,
+  Sliders,
+} from 'lucide-react';
 import { useStore } from '../../context/StoreContext.tsx';
 import { api } from '../../services/api.ts';
 
@@ -8,8 +18,28 @@ interface BrandingThemeModalProps {
   onClose: () => void;
 }
 
+function computeHoverColor(hex: string, percent = -15): string {
+  try {
+    let cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+      cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+    const num = parseInt(cleanHex, 16);
+    let r = (num >> 16) + Math.round(255 * (percent / 100));
+    let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+    let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+    r = Math.min(255, Math.max(0, r));
+    g = Math.min(255, Math.max(0, g));
+    b = Math.min(255, Math.max(0, b));
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  } catch {
+    return hex;
+  }
+}
+
 const COLOR_PRESETS = [
   { name: 'Lite Green (Brand)', hex: '#22c55e', hover: '#16a34a' },
+  { name: 'Bright Neon Green', hex: '#3dff24', hover: '#2ec91a' },
   { name: 'Mint Emerald', hex: '#10b981', hover: '#059669' },
   { name: 'Lime Fresh', hex: '#84cc16', hover: '#65a30d' },
   { name: 'Forest Green', hex: '#16a34a', hover: '#15803d' },
@@ -34,13 +64,15 @@ const RADIUS_PRESETS: Array<{ label: string; value: 'rounded-md' | 'rounded-lg' 
 export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, onClose }) => {
   const { settings, updateSettingsInDb } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'logo' | 'colors'>('colors');
+  const [activeTab, setActiveTab] = useState<'colors' | 'logo'>('colors');
 
   // Form State
   const [logoUrl, setLogoUrl] = useState(settings?.logoUrl || '');
   const [logoText, setLogoText] = useState(settings?.logoText || settings?.brandName || 'MAKER TANK 3D');
   const [logoSubtitle, setLogoSubtitle] = useState(settings?.logoSubtitle || settings?.tagline || 'PRINT • DESIGN • CREATE');
   const [primaryColor, setPrimaryColor] = useState(settings?.primaryColor || '#22c55e');
+  const [logoColor, setLogoColor] = useState(settings?.logoColor || settings?.primaryColor || '#22c55e');
+  const [syncLogoWithTheme, setSyncLogoWithTheme] = useState(!settings?.logoColor || settings?.logoColor === settings?.primaryColor);
   const [buttonTextColor, setButtonTextColor] = useState(settings?.buttonTextColor || '#ffffff');
   const [buttonRadius, setButtonRadius] = useState<'rounded-md' | 'rounded-lg' | 'rounded-xl' | 'rounded-2xl' | 'rounded-full'>(
     settings?.buttonRadius || 'rounded-xl'
@@ -52,8 +84,73 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    modalBodyRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
+
+  // Sync state whenever modal opens or settings change
+  useEffect(() => {
+    if (isOpen && settings) {
+      setLogoUrl(settings.logoUrl || '');
+      setLogoText(settings.logoText || settings.brandName || 'MAKER TANK 3D');
+      setLogoSubtitle(settings.logoSubtitle || settings.tagline || 'PRINT • DESIGN • CREATE');
+      const pColor = settings.primaryColor || '#22c55e';
+      const lColor = settings.logoColor || pColor;
+      setPrimaryColor(pColor);
+      setLogoColor(lColor);
+      setSyncLogoWithTheme(!settings.logoColor || settings.logoColor === pColor);
+      setButtonTextColor(settings.buttonTextColor || '#ffffff');
+      setButtonRadius(settings.buttonRadius || 'rounded-xl');
+    }
+  }, [isOpen, settings]);
+
+  // LIVE INTERACTIVE PREVIEW: Dynamically inject CSS variables into document while user edits
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const hover = computeHoverColor(primaryColor, -15);
+    const activeLogoColor = syncLogoWithTheme ? primaryColor : logoColor;
+
+    document.documentElement.style.setProperty('--theme-primary', primaryColor);
+    document.documentElement.style.setProperty('--theme-primary-hover', hover);
+    document.documentElement.style.setProperty('--theme-primary-text', buttonTextColor);
+    document.documentElement.style.setProperty('--theme-logo', activeLogoColor);
+
+    const radiusMap: Record<string, string> = {
+      'rounded-md': '0.375rem',
+      'rounded-lg': '0.5rem',
+      'rounded-xl': '0.75rem',
+      'rounded-2xl': '1rem',
+      'rounded-full': '9999px',
+    };
+    document.documentElement.style.setProperty('--theme-button-radius', radiusMap[buttonRadius] || '0.75rem');
+  }, [isOpen, primaryColor, logoColor, syncLogoWithTheme, buttonTextColor, buttonRadius]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    // Revert document CSS properties to current saved settings
+    const savedPrimary = settings?.primaryColor || '#22c55e';
+    const savedHover = settings?.primaryHoverColor || computeHoverColor(savedPrimary, -15);
+    const savedText = settings?.buttonTextColor || '#ffffff';
+    const savedLogo = settings?.logoColor || savedPrimary;
+    const radiusMap: Record<string, string> = {
+      'rounded-md': '0.375rem',
+      'rounded-lg': '0.5rem',
+      'rounded-xl': '0.75rem',
+      'rounded-2xl': '1rem',
+      'rounded-full': '9999px',
+    };
+    document.documentElement.style.setProperty('--theme-primary', savedPrimary);
+    document.documentElement.style.setProperty('--theme-primary-hover', savedHover);
+    document.documentElement.style.setProperty('--theme-primary-text', savedText);
+    document.documentElement.style.setProperty('--theme-logo', savedLogo);
+    document.documentElement.style.setProperty('--theme-button-radius', radiusMap[settings?.buttonRadius || 'rounded-xl'] || '0.75rem');
+
+    onClose();
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -75,8 +172,8 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
       setIsSaving(true);
       setError(null);
 
-      // Compute slightly darker shade for hover
-      const hoverColor = primaryColor; // or computed
+      const hoverColor = computeHoverColor(primaryColor, -15);
+      const finalLogoColor = syncLogoWithTheme ? primaryColor : logoColor;
 
       await updateSettingsInDb({
         logoUrl: logoUrl.trim(),
@@ -86,6 +183,7 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
         tagline: logoSubtitle.trim() || 'PRINT • DESIGN • CREATE',
         primaryColor,
         primaryHoverColor: hoverColor,
+        logoColor: finalLogoColor,
         buttonTextColor,
         buttonRadius,
       });
@@ -104,12 +202,16 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
 
   const handleResetToDefault = () => {
     setPrimaryColor('#22c55e');
+    setLogoColor('#22c55e');
+    setSyncLogoWithTheme(true);
     setButtonTextColor('#ffffff');
     setButtonRadius('rounded-xl');
     setLogoUrl('');
     setLogoText('MAKER TANK 3D');
     setLogoSubtitle('PRINT • DESIGN • CREATE');
   };
+
+  const effectiveLogoColor = syncLogoWithTheme ? primaryColor : logoColor;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -128,12 +230,12 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
                 Logo &amp; Interface Theme Editor
               </h3>
               <p className="text-[11px] text-slate-500">
-                Customize your brand logo, button colors, and store styling anytime.
+                Instantly customize button colors, overall UI accents, and brand logo.
               </p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -164,12 +266,12 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
             }`}
           >
             <Image className="w-4 h-4" />
-            <span>Logo &amp; Brand Text</span>
+            <span>Logo, Emblem &amp; Brand Text</span>
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+        <div ref={modalBodyRef} className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-200">
               {error}
@@ -181,18 +283,26 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
             <div className="space-y-6">
               {/* Preset Palette */}
               <div className="space-y-2">
-                <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                  Preset Color Palettes
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                    Preset Color Palettes
+                  </label>
+                  <span className="text-[10px] text-slate-400">Click to apply live</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {COLOR_PRESETS.map(preset => {
                     const isSelected = primaryColor.toLowerCase() === preset.hex.toLowerCase();
                     return (
                       <button
                         key={preset.hex}
                         type="button"
-                        onClick={() => setPrimaryColor(preset.hex)}
-                        className={`p-2 rounded-xl border flex items-center gap-2 text-left transition-all ${
+                        onClick={() => {
+                          setPrimaryColor(preset.hex);
+                          if (syncLogoWithTheme) {
+                            setLogoColor(preset.hex);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border flex items-center gap-2.5 text-left transition-all ${
                           isSelected
                             ? 'border-slate-950 ring-2 ring-slate-900/10 bg-slate-50 font-bold shadow-xs'
                             : 'border-slate-200 hover:border-slate-300 bg-white'
@@ -215,27 +325,47 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-800">
-                    Custom Button Accent Color
+                    Custom Button &amp; UI Accent Color
                   </label>
                   <p className="text-[11px] text-slate-500">
-                    Pick any custom color for buttons, badges, highlights &amp; links.
+                    Controls all website buttons, cards, active pills, links, and highlights.
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <input
                       type="color"
                       value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white"
+                      onChange={e => {
+                        setPrimaryColor(e.target.value);
+                        if (syncLogoWithTheme) setLogoColor(e.target.value);
+                      }}
+                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-2xs"
                     />
                     <input
                       type="text"
                       value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
+                      onChange={e => {
+                        setPrimaryColor(e.target.value);
+                        if (syncLogoWithTheme) setLogoColor(e.target.value);
+                      }}
                       placeholder="#22c55e"
                       maxLength={7}
                       className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-xl font-mono uppercase bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 font-bold"
                     />
                   </div>
+                  <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={syncLogoWithTheme}
+                      onChange={e => {
+                        setSyncLogoWithTheme(e.target.checked);
+                        if (e.target.checked) setLogoColor(primaryColor);
+                      }}
+                      className="rounded text-slate-900 focus:ring-slate-900"
+                    />
+                    <span className="text-[11px] text-slate-600 font-medium">
+                      Also apply to Logo Emblem &amp; Monogram
+                    </span>
+                  </label>
                 </div>
 
                 <div className="space-y-1.5">
@@ -304,14 +434,91 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
 
           {/* TAB 2: LOGO & BRAND TEXT */}
           {activeTab === 'logo' && (
-            <div className="space-y-5">
+            <div className="space-y-6">
+              {/* Dedicated Logo Color Customizer */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-slate-700" />
+                    <span>Logo Emblem &amp; Monogram Color</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={syncLogoWithTheme}
+                      onChange={e => {
+                        setSyncLogoWithTheme(e.target.checked);
+                        if (e.target.checked) setLogoColor(primaryColor);
+                      }}
+                      className="rounded text-slate-900 focus:ring-slate-900"
+                    />
+                    <span>Match Button Theme ({primaryColor})</span>
+                  </label>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Easily customize the logo box in the top header and footer. Choose any color independently.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      disabled={syncLogoWithTheme}
+                      value={effectiveLogoColor}
+                      onChange={e => {
+                        setLogoColor(e.target.value);
+                        setSyncLogoWithTheme(false);
+                      }}
+                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      disabled={syncLogoWithTheme}
+                      value={effectiveLogoColor}
+                      onChange={e => {
+                        setLogoColor(e.target.value);
+                        setSyncLogoWithTheme(false);
+                      }}
+                      placeholder="#22c55e"
+                      maxLength={7}
+                      className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-xl font-mono uppercase bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 font-bold disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Quick color chips for logo */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {['#22c55e', '#3dff24', '#2563eb', '#ea580c', '#7c3aed', '#dc2626', '#0f172a'].map(hex => (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => {
+                          setLogoColor(hex);
+                          setSyncLogoWithTheme(false);
+                        }}
+                        className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-transform hover:scale-110 ${
+                          effectiveLogoColor.toLowerCase() === hex.toLowerCase()
+                            ? 'ring-2 ring-slate-900 shadow-xs'
+                            : 'border-slate-300'
+                        }`}
+                        style={{ backgroundColor: hex }}
+                        title={`Set logo color to ${hex}`}
+                      >
+                        {effectiveLogoColor.toLowerCase() === hex.toLowerCase() && (
+                          <Check className="w-3 h-3 text-white stroke-[3]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Logo Image Upload / URL */}
               <div className="space-y-2">
                 <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                  Store Logo Image
+                  Store Logo Image (Optional)
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Upload an image logo (PNG, SVG, WebP with transparent background recommended) or paste a direct web URL.
+                  Upload an image logo (PNG, SVG, WebP with transparent background) or leave empty to use the custom monogram emblem above.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -405,10 +612,10 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <Eye className="w-3.5 h-3.5 text-slate-500" />
-                <span>Live Real-Time Preview</span>
+                <span>Live Real-Time Preview (Applied Across Site)</span>
               </span>
               <span className="text-[10px] text-slate-400 font-normal">
-                Preview updates instantly
+                Changes apply instantly
               </span>
             </div>
 
@@ -425,7 +632,7 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
                 ) : (
                   <div
                     className="w-9 h-9 rounded-lg font-extrabold flex items-center justify-center text-lg tracking-tighter shadow-sm text-white transition-colors"
-                    style={{ backgroundColor: primaryColor }}
+                    style={{ backgroundColor: effectiveLogoColor }}
                   >
                     {logoText ? logoText.charAt(0).toUpperCase() : 'M'}
                   </div>
@@ -478,7 +685,7 @@ export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSaving}
               className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
             >

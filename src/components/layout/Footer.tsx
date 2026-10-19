@@ -40,7 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectCategory }) 
               ) : (
                 <div
                   className="w-8 h-8 rounded-lg font-black flex items-center justify-center text-base text-white shadow-xs"
-                  style={{ backgroundColor: settings?.primaryColor || '#22c55e' }}
+                  style={{ backgroundColor: settings?.logoColor || settings?.primaryColor || '#22c55e' }}
                 >
                   {(settings?.logoText || settings?.brandName || 'M').charAt(0).toUpperCase()}
                 </div>

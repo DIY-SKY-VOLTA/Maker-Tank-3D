@@ -129,7 +129,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div className="inline-flex items-center">
                   <button
                     onClick={() => onNavigate(settings?.heroPrimaryBtnLink || 'shop')}
-                    className="px-6 py-3.5 bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2.5 group"
+                    className="px-6 py-3.5 bg-theme hover:bg-theme-hover text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2.5 group"
                   >
                     {isEditMode ? (
                       <EditableText
@@ -529,7 +529,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div className="pt-3">
                   <button
                     onClick={() => onNavigate(settings?.conceptBtnLink || 'custom')}
-                    className="px-5 py-3 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                    className="px-5 py-3 bg-theme hover:bg-theme-hover text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
                   >
                     {isEditMode ? (
                       <EditableText

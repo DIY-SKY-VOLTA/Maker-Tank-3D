@@ -22,6 +22,25 @@ import { AdminLoginModal } from './components/inline-editor/AdminLoginModal.tsx'
 
 import type { Product } from './types/index.ts';
 
+function computeHoverColor(hex: string, percent = -15): string {
+  try {
+    let cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+      cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+    const num = parseInt(cleanHex, 16);
+    let r = (num >> 16) + Math.round(255 * (percent / 100));
+    let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+    let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+    r = Math.min(255, Math.max(0, r));
+    g = Math.min(255, Math.max(0, g));
+    b = Math.min(255, Math.max(0, b));
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  } catch {
+    return hex;
+  }
+}
+
 function MainApp() {
   const { setSelectedCategory, setSelectedEvent, settings } = useStore();
   const { openLoginModal } = useAuth();
@@ -32,12 +51,24 @@ function MainApp() {
   // Dynamically update CSS variables when theme/brand color settings change
   useEffect(() => {
     const primary = settings?.primaryColor || '#22c55e';
-    const hover = settings?.primaryHoverColor || '#16a34a';
+    const hover = settings?.primaryHoverColor || computeHoverColor(primary, -15);
     const text = settings?.buttonTextColor || '#ffffff';
+    const logoColor = settings?.logoColor || primary;
+    const radiusMap: Record<string, string> = {
+      'rounded-md': '0.375rem',
+      'rounded-lg': '0.5rem',
+      'rounded-xl': '0.75rem',
+      'rounded-2xl': '1rem',
+      'rounded-full': '9999px',
+    };
+    const radiusVal = radiusMap[settings?.buttonRadius || 'rounded-xl'] || '0.75rem';
+
     document.documentElement.style.setProperty('--theme-primary', primary);
     document.documentElement.style.setProperty('--theme-primary-hover', hover);
     document.documentElement.style.setProperty('--theme-primary-text', text);
-  }, [settings?.primaryColor, settings?.primaryHoverColor, settings?.buttonTextColor]);
+    document.documentElement.style.setProperty('--theme-logo', logoColor);
+    document.documentElement.style.setProperty('--theme-button-radius', radiusVal);
+  }, [settings?.primaryColor, settings?.primaryHoverColor, settings?.buttonTextColor, settings?.logoColor, settings?.buttonRadius]);
 
   // Keyboard shortcut: Ctrl + Shift + A (or Cmd + Shift + A) to open Admin Quick Login
   useEffect(() => {
