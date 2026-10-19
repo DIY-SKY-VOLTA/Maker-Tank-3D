@@ -1,0 +1,516 @@
+import React, { useState, useRef } from 'react';
+import { X, Palette, UploadCloud, Check, Sparkles, Image, RefreshCw, Undo, Eye } from 'lucide-react';
+import { useStore } from '../../context/StoreContext.tsx';
+import { api } from '../../services/api.ts';
+
+interface BrandingThemeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const COLOR_PRESETS = [
+  { name: 'Lite Green (Brand)', hex: '#22c55e', hover: '#16a34a' },
+  { name: 'Mint Emerald', hex: '#10b981', hover: '#059669' },
+  { name: 'Lime Fresh', hex: '#84cc16', hover: '#65a30d' },
+  { name: 'Forest Green', hex: '#16a34a', hover: '#15803d' },
+  { name: 'Electric Blue', hex: '#2563eb', hover: '#1d4ed8' },
+  { name: 'Maker Orange', hex: '#ea580c', hover: '#c2410c' },
+  { name: 'Cyber Cyan', hex: '#0891b2', hover: '#0e7490' },
+  { name: 'Teal Modern', hex: '#0d9488', hover: '#0f766e' },
+  { name: 'Violet Purple', hex: '#7c3aed', hover: '#6d28d9' },
+  { name: 'Crimson Red', hex: '#dc2626', hover: '#b91c1c' },
+  { name: 'Amber Gold', hex: '#d97706', hover: '#b45309' },
+  { name: 'Midnight Slate', hex: '#0f172a', hover: '#020617' },
+];
+
+const RADIUS_PRESETS: Array<{ label: string; value: 'rounded-md' | 'rounded-lg' | 'rounded-xl' | 'rounded-2xl' | 'rounded-full' }> = [
+  { label: 'Sharp (6px)', value: 'rounded-md' },
+  { label: 'Standard (8px)', value: 'rounded-lg' },
+  { label: 'Soft (12px)', value: 'rounded-xl' },
+  { label: 'Curvy (16px)', value: 'rounded-2xl' },
+  { label: 'Pill (Full)', value: 'rounded-full' },
+];
+
+export const BrandingThemeModal: React.FC<BrandingThemeModalProps> = ({ isOpen, onClose }) => {
+  const { settings, updateSettingsInDb } = useStore();
+
+  const [activeTab, setActiveTab] = useState<'logo' | 'colors'>('colors');
+
+  // Form State
+  const [logoUrl, setLogoUrl] = useState(settings?.logoUrl || '');
+  const [logoText, setLogoText] = useState(settings?.logoText || settings?.brandName || 'MAKER TANK 3D');
+  const [logoSubtitle, setLogoSubtitle] = useState(settings?.logoSubtitle || settings?.tagline || 'PRINT • DESIGN • CREATE');
+  const [primaryColor, setPrimaryColor] = useState(settings?.primaryColor || '#22c55e');
+  const [buttonTextColor, setButtonTextColor] = useState(settings?.buttonTextColor || '#ffffff');
+  const [buttonRadius, setButtonRadius] = useState<'rounded-md' | 'rounded-lg' | 'rounded-xl' | 'rounded-2xl' | 'rounded-full'>(
+    settings?.buttonRadius || 'rounded-xl'
+  );
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!isOpen) return null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    try {
+      setIsUploading(true);
+      setError(null);
+      const res = await api.uploadFile(file);
+      setLogoUrl(res.url);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload logo image.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      // Compute slightly darker shade for hover
+      const hoverColor = primaryColor; // or computed
+
+      await updateSettingsInDb({
+        logoUrl: logoUrl.trim(),
+        logoText: logoText.trim() || 'MAKER TANK 3D',
+        brandName: logoText.trim() || 'MAKER TANK 3D',
+        logoSubtitle: logoSubtitle.trim() || 'PRINT • DESIGN • CREATE',
+        tagline: logoSubtitle.trim() || 'PRINT • DESIGN • CREATE',
+        primaryColor,
+        primaryHoverColor: hoverColor,
+        buttonTextColor,
+        buttonRadius,
+      });
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        onClose();
+      }, 700);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save branding & theme settings.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleResetToDefault = () => {
+    setPrimaryColor('#22c55e');
+    setButtonTextColor('#ffffff');
+    setButtonRadius('rounded-xl');
+    setLogoUrl('');
+    setLogoText('MAKER TANK 3D');
+    setLogoSubtitle('PRINT • DESIGN • CREATE');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-colors"
+              style={{ backgroundColor: primaryColor }}
+            >
+              <Palette className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-950">
+                Logo &amp; Interface Theme Editor
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Customize your brand logo, button colors, and store styling anytime.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex border-b border-slate-200 text-xs font-bold px-6 bg-white shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('colors')}
+            className={`py-3 mr-6 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'colors'
+                ? 'border-slate-950 text-slate-950'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>Button &amp; Interface Colors</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('logo')}
+            className={`py-3 mr-6 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'logo'
+                ? 'border-slate-950 text-slate-950'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Image className="w-4 h-4" />
+            <span>Logo &amp; Brand Text</span>
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-200">
+              {error}
+            </div>
+          )}
+
+          {/* TAB 1: COLORS & BUTTONS */}
+          {activeTab === 'colors' && (
+            <div className="space-y-6">
+              {/* Preset Palette */}
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                  Preset Color Palettes
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {COLOR_PRESETS.map(preset => {
+                    const isSelected = primaryColor.toLowerCase() === preset.hex.toLowerCase();
+                    return (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setPrimaryColor(preset.hex)}
+                        className={`p-2 rounded-xl border flex items-center gap-2 text-left transition-all ${
+                          isSelected
+                            ? 'border-slate-950 ring-2 ring-slate-900/10 bg-slate-50 font-bold shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-lg shrink-0 shadow-xs flex items-center justify-center text-white"
+                          style={{ backgroundColor: preset.hex }}
+                        >
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <span className="text-[11px] text-slate-800 truncate">{preset.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Color Picker & Hex Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Custom Button Accent Color
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Pick any custom color for buttons, badges, highlights &amp; links.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={e => setPrimaryColor(e.target.value)}
+                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white"
+                    />
+                    <input
+                      type="text"
+                      value={primaryColor}
+                      onChange={e => setPrimaryColor(e.target.value)}
+                      placeholder="#22c55e"
+                      maxLength={7}
+                      className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-xl font-mono uppercase bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Button Text Color
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Ensure contrast against your button background.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setButtonTextColor('#ffffff')}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                        buttonTextColor === '#ffffff'
+                          ? 'border-slate-950 bg-slate-950 text-white'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="w-3 h-3 rounded-full bg-white border border-slate-300" />
+                      <span>White Text</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setButtonTextColor('#0f172a')}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                        buttonTextColor === '#0f172a'
+                          ? 'border-slate-950 bg-slate-950 text-white'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="w-3 h-3 rounded-full bg-slate-950" />
+                      <span>Dark Text</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Button Corner Radius */}
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                  Button Corner Shape
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {RADIUS_PRESETS.map(radius => {
+                    const isSelected = buttonRadius === radius.value;
+                    return (
+                      <button
+                        key={radius.value}
+                        type="button"
+                        onClick={() => setButtonRadius(radius.value)}
+                        className={`p-2.5 border text-center transition-all ${radius.value} ${
+                          isSelected
+                            ? 'border-slate-950 bg-slate-950 text-white font-bold shadow-xs'
+                            : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+                        }`}
+                      >
+                        <span className="text-xs">{radius.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: LOGO & BRAND TEXT */}
+          {activeTab === 'logo' && (
+            <div className="space-y-5">
+              {/* Logo Image Upload / URL */}
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                  Store Logo Image
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Upload an image logo (PNG, SVG, WebP with transparent background recommended) or paste a direct web URL.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  {/* Upload box */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-300 hover:border-slate-900 rounded-2xl p-5 text-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors flex flex-col items-center justify-center space-y-1.5"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <UploadCloud className="w-6 h-6 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-800">
+                      {isUploading ? 'Uploading logo...' : 'Upload Logo File'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      PNG, SVG, JPG, WebP supported
+                    </span>
+                  </div>
+
+                  {/* Direct URL input */}
+                  <div className="space-y-2 flex flex-col justify-center">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Or Paste Logo Web URL
+                      </label>
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={e => setLogoUrl(e.target.value)}
+                        placeholder="https://.../logo.png"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
+                      />
+                    </div>
+                    {logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLogoUrl('')}
+                        className="text-[11px] text-red-600 hover:text-red-700 font-semibold text-left underline"
+                      >
+                        Remove Logo Image (Revert to Monogram)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Brand Name / Logo Text */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Store Brand Name (Logo Text)
+                  </label>
+                  <input
+                    type="text"
+                    value={logoText}
+                    onChange={e => setLogoText(e.target.value)}
+                    placeholder="e.g. MAKER TANK 3D"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900 font-bold"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Appears in header, footer, page titles, and receipts.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Logo Subtitle / Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={logoSubtitle}
+                    onChange={e => setLogoSubtitle(e.target.value)}
+                    placeholder="e.g. PRINT • DESIGN • CREATE"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900 font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Displays directly under the brand logo in the header.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* REAL-TIME PREVIEW CARD */}
+          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                <span>Live Real-Time Preview</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-normal">
+                Preview updates instantly
+              </span>
+            </div>
+
+            {/* Mock Header Branding */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo Preview"
+                    className="h-9 w-auto max-w-[120px] object-contain rounded-lg"
+                    onError={() => setError('Could not load logo from the provided URL')}
+                  />
+                ) : (
+                  <div
+                    className="w-9 h-9 rounded-lg font-extrabold flex items-center justify-center text-lg tracking-tighter shadow-sm text-white transition-colors"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {logoText ? logoText.charAt(0).toUpperCase() : 'M'}
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-extrabold tracking-tight text-slate-950 whitespace-nowrap leading-tight">
+                    {logoText || 'MAKER TANK 3D'}
+                  </div>
+                  <div className="text-[9px] font-semibold tracking-widest text-slate-500 uppercase whitespace-nowrap">
+                    {logoSubtitle || 'PRINT • DESIGN • CREATE'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sample Buttons & Badge */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  style={{ backgroundColor: primaryColor, color: buttonTextColor }}
+                  className={`px-3.5 py-1.5 text-xs font-bold shadow-sm transition-transform hover:scale-105 ${buttonRadius}`}
+                >
+                  Primary Button
+                </button>
+                <div
+                  className="px-2.5 py-1 text-[10px] font-bold rounded-full border"
+                  style={{
+                    backgroundColor: `${primaryColor}15`,
+                    color: primaryColor,
+                    borderColor: `${primaryColor}40`,
+                  }}
+                >
+                  Active Tag
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleResetToDefault}
+            className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+          >
+            <Undo className="w-3.5 h-3.5" />
+            <span>Reset Defaults</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ backgroundColor: primaryColor, color: buttonTextColor }}
+              className={`px-5 py-2 font-bold text-xs shadow-sm flex items-center gap-2 transition-transform hover:opacity-95 ${buttonRadius}`}
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Save Branding &amp; Colors</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

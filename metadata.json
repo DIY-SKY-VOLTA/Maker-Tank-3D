@@ -1,0 +1,6 @@
+{
+  "name": "Maker Tank 3D",
+  "description": "3D printing business website offering custom CAD design, FDM & SLA printing, personalised gifts, ready-made products, bulk orders, and 3D models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
